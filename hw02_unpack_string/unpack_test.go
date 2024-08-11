@@ -40,7 +40,7 @@ func TestUnpack(t *testing.T) {
 }
 
 func TestUnpackInvalidString(t *testing.T) {
-	invalidStrings := []string{"3abc", "45", "aaa10b", `\\\`, `r\\\42\`}
+	invalidStrings := []string{"3abc", "45", "aaa10b", `\\\`, `r\\\42\`, `\a`, `\`, `\2\b`, `d\re\5p`}
 	for _, tc := range invalidStrings {
 		tc := tc
 		t.Run(tc, func(t *testing.T) {

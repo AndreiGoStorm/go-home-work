@@ -44,6 +44,9 @@ func tokenize(runes []rune) ([]Token, error) {
 				return nil, ErrInvalidString
 			}
 			i++
+			if !unicode.IsDigit(runes[i]) && runes[i] != slash {
+				return nil, ErrInvalidString
+			}
 		}
 		tokens = append(tokens, Token{token: string(runes[i])})
 	}
@@ -67,9 +70,9 @@ func unpackTokens(tokens []Token) error {
 }
 
 func unpackString(tokens []Token) string {
-	var result string
+	var result strings.Builder
 	for _, value := range tokens {
-		result += value.unpacked
+		result.WriteString(value.unpacked)
 	}
-	return result
+	return result.String()
 }
