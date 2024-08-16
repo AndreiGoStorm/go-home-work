@@ -7,7 +7,7 @@ import (
 )
 
 // Change to true if needed.
-var taskWithAsteriskIsCompleted = false
+var taskWithAsteriskIsCompleted = true
 
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
@@ -46,6 +46,60 @@ var text = `Как видите, он  спускается  по  лестни�
 func TestTop10(t *testing.T) {
 	t.Run("no words in empty string", func(t *testing.T) {
 		require.Len(t, Top10(""), 0)
+	})
+
+	t.Run("words with space symbols", func(t *testing.T) {
+		text := "cat and  \t\n dog  \ncat    and     \t\t   dog" // 6
+		expected := []string{
+			"and", // 2
+			"cat", // 2
+			"dog", // 2
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("words with simple examples", func(t *testing.T) {
+		text := "cat and dog, one dog,two cats and one man dog,cat dog...cat dogcat" // 12
+		expected := []string{
+			"and",       // 2
+			"one",       // 2
+			"cat",       // 1
+			"cats",      // 1
+			"dog",       // 1
+			"dog,cat",   // 1
+			"dog,two",   // 1
+			"dog...cat", // 1
+			"dogcat",    // 1
+			"man",       // 1
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("string with punctuation marks", func(t *testing.T) {
+		text := "Нога нога нога! нога, нога. нога... нога? ноги... нога.нога нога,н ног,а,н нога..нога" // 12
+		expected := []string{
+			"нога",       // 7
+			"ног,а,н",    // 1
+			"нога,н",     // 1
+			"нога..нога", // 1
+			"нога.нога",  // 1
+			"ноги",       // 1
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("string with dashes", func(t *testing.T) {
+		text := "какой-то Какой-то Какой-То какойто какой-то-какой какой--то - -- ---то ---------" // 10
+		expected := []string{
+			"какой-то",       // 3
+			"--",             // 1
+			"---------",      // 1
+			"---то",          // 1
+			"какой--то",      // 1
+			"какой-то-какой", // 1
+			"какойто",        // 1
+		}
+		require.Equal(t, expected, Top10(text))
 	})
 
 	t.Run("positive test", func(t *testing.T) {
