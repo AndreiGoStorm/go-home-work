@@ -27,24 +27,24 @@ func Top10(text string) []string {
 		words = append(words, Word{count, key})
 	}
 
-	return filterTop10(&words)
+	return filterTop10(words)
 }
 
-func filterTop10(words *[]Word) []string {
-	sort.Slice(*words, func(i, j int) bool {
-		if (*words)[i].count == (*words)[j].count {
-			return (*words)[i].value < (*words)[j].value
+func filterTop10(words []Word) []string {
+	sort.Slice(words, func(i, j int) bool {
+		if words[i].count == words[j].count {
+			return words[i].value < words[j].value
 		}
-		return (*words)[i].count > (*words)[j].count
+		return words[i].count > words[j].count
 	})
 
-	length := len(*words)
+	length := len(words)
 	if length > maxCount {
 		length = maxCount
 	}
 	top10 := make([]string, 0, length)
 	for i := 0; i < length; i++ {
-		top10 = append(top10, (*words)[i].value)
+		top10 = append(top10, words[i].value)
 	}
 
 	return top10
