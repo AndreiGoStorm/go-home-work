@@ -31,8 +31,8 @@ func (lru *lruCache) Set(key Key, value interface{}) bool {
 		item.Value = newItem
 		lru.moveToFront(item, key)
 	} else {
-		lru.items[key] = lru.queue.PushFront(newItem)
 		lru.dequeueOldestItem()
+		lru.items[key] = lru.queue.PushFront(newItem)
 	}
 
 	return ok
@@ -51,7 +51,7 @@ func (lru *lruCache) Get(key Key) (interface{}, bool) {
 }
 
 func (lru *lruCache) dequeueOldestItem() {
-	if lru.queue.Len() > lru.capacity {
+	if lru.queue.Len() >= lru.capacity {
 		last := lru.queue.Back()
 		item := last.Value.(*Item)
 		delete(lru.items, item.key)
@@ -68,7 +68,7 @@ func (lru *lruCache) Clear() {
 	defer lru.Mutex.Unlock()
 	lru.Mutex.Lock()
 	clear(lru.items)
-	lru.queue.Clear()
+	lru.queue = NewList()
 }
 
 func NewItem(key Key, value interface{}) *Item {
