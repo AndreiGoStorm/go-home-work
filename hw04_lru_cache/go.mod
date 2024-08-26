@@ -1,4 +1,4 @@
-module github.com/fixme_my_friend/hw04_lru_cache
+module github.com/AndreiGoStorm/go-home-work/hw04_lru_cache
 
 go 1.22
 
