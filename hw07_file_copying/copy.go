@@ -12,28 +12,30 @@ import (
 var (
 	ErrUnsupportedFile       = errors.New("unsupported file")
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
+	ErrSameFilePaths         = errors.New("from and to file paths the same")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	bytes, err := validateFile(fromPath, offset, limit)
-	if err != nil {
-		return err
-	}
-
 	fromFile, err := os.Open(fromPath)
 	if err != nil {
 		return err
 	}
 	defer fromFile.Close()
-	if offset > 0 {
-		fromFile.Seek(offset, 0)
-	}
 
 	toFile, err := os.Create(toPath)
 	if err != nil {
 		return err
 	}
 	defer toFile.Close()
+
+	bytes, err := validate(fromPath, toPath, offset, limit)
+	if err != nil {
+		return err
+	}
+
+	if offset > 0 {
+		fromFile.Seek(offset, 0)
+	}
 
 	bar := pb.Full.Start64(bytes)
 	toFileWriter := bar.NewProxyWriter(toFile)
@@ -47,21 +49,19 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	return nil
 }
 
-func validateFile(name string, offset, limit int64) (int64, error) {
-	info, err := os.Stat(name)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return 0, fs.ErrNotExist
-		}
-		return 0, err
-	}
-	if isUnsupportedFile(info.Mode()) {
+func validate(from, to string, offset, limit int64) (int64, error) {
+	infoFrom, _ := os.Stat(from)
+	if isUnsupportedFile(infoFrom.Mode()) {
 		return 0, ErrUnsupportedFile
 	}
-	if offset > info.Size() {
+	if offset > infoFrom.Size() {
 		return 0, ErrOffsetExceedsFileSize
 	}
-	bytes := info.Size() - offset
+	infoTo, _ := os.Stat(to)
+	if os.SameFile(infoFrom, infoTo) {
+		return 0, ErrSameFilePaths
+	}
+	bytes := infoFrom.Size() - offset
 	if limit > 0 && bytes > limit {
 		bytes = limit
 	}

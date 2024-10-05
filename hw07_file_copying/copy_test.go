@@ -63,6 +63,15 @@ func TestCopy(t *testing.T) {
 		require.EqualError(t, err, ErrUnsupportedFile.Error())
 	})
 
+	t.Run("Error: from and to file paths the same", func(t *testing.T) {
+		toFile, _ := os.CreateTemp(tempPath, tempExtension)
+		defer os.Remove(toFile.Name())
+
+		err := Copy(toFile.Name(), toFile.Name(), 0, 0)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrSameFilePaths)
+	})
+
 	t.Run("Error: offset more then size", func(t *testing.T) {
 		toFile, _ := os.CreateTemp(tempPath, tempExtension)
 		defer os.Remove(toFile.Name())
