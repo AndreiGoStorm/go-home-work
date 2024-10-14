@@ -149,7 +149,7 @@ func TestStructValidator(t *testing.T) {
 			t.Run(fmt.Sprintf("struct case %d", i), func(t *testing.T) {
 				err := Validate(tt.in)
 				require.Error(t, err)
-				require.ErrorIs(t, err, ErrNotStruct)
+				require.ErrorIs(t, err, ErrFailNotStruct)
 			})
 		}
 	})
@@ -293,6 +293,94 @@ func getSliceTestParams() []ValidatorTest {
 			in:            IntSlice{Ints: []int{0, 5, 10, 15}},
 			expectedErr:   ErrIntLessThanMin,
 			expectedField: "Ints",
+		},
+	}
+}
+
+func TestFailValidate(t *testing.T) {
+	tests := getStringFailParams()
+	tests = append(tests, getIntFailParams()...)
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("fail validate case %d", i), func(t *testing.T) {
+			err := Validate(tt.in)
+			require.ErrorIs(t, err, tt.expectedErr)
+		})
+	}
+}
+
+type (
+	StringWrongRule struct {
+		Wrong string `validate:"min:7"`
+	}
+
+	StringFailLen struct {
+		Len string `validate:"len:W7"`
+	}
+
+	StringFailRegexp struct {
+		Regexp string `validate:"regexp:stp("`
+	}
+
+	StringFailIn struct {
+		In string `validate:"in:"`
+	}
+
+	IntWrongRule struct {
+		Wrong int `validate:"len:7"`
+	}
+
+	IntFailMin struct {
+		Min int `validate:"min:w"`
+	}
+
+	IntFailMax struct {
+		Max int `validate:"max:r"`
+	}
+
+	IntFailIn struct {
+		In int `validate:"in:slice"`
+	}
+)
+
+func getStringFailParams() []ValidatorTest {
+	return []ValidatorTest{
+		{
+			in:          StringWrongRule{Wrong: "version"},
+			expectedErr: ErrFailWrongRule,
+		},
+		{
+			in:          StringFailLen{Len: "version"},
+			expectedErr: ErrFailWrongLengthNumber,
+		},
+		{
+			in:          StringFailRegexp{Regexp: "version"},
+			expectedErr: ErrFailWrongRegexp,
+		},
+		{
+			in:          StringFailIn{In: "version"},
+			expectedErr: ErrFailWrongSet,
+		},
+	}
+}
+
+func getIntFailParams() []ValidatorTest {
+	return []ValidatorTest{
+		{
+			in:          IntWrongRule{Wrong: 100},
+			expectedErr: ErrFailWrongRule,
+		},
+		{
+			in:          IntFailMin{Min: 100},
+			expectedErr: ErrFailWrongMinNumber,
+		},
+		{
+			in:          IntFailMax{Max: 100},
+			expectedErr: ErrFailWrongMaxNumber,
+		},
+		{
+			in:          IntFailIn{In: 100},
+			expectedErr: ErrFailSetNumber,
 		},
 	}
 }

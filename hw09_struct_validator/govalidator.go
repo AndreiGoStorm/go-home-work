@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	ErrValidationParse = errors.New("parsing error in field")
-	ErrUndefinedRule   = errors.New("undefined rule in field")
+	ErrFailWrongArgs = errors.New("wrong arguments in field")
+	ErrFailWrongRule = errors.New("wrong rule in field")
 )
 
 type iValidator interface {
-	validate(v *Validator)
+	validate(v *Validator) error
 }
 
 type Validator struct {
@@ -50,27 +50,26 @@ func (v *Validator) SetIntegerValidator() {
 	v.SetIValidator(&IntegerValidator{})
 }
 
-func (v *Validator) Validate() {
-	v.iValidator.validate(v)
+func (v *Validator) Validate() error {
+	return v.iValidator.validate(v)
 }
 
-func (v *Validator) parseTag(tag string) []string {
+func (v *Validator) parseTag(tag string) ([]string, error) {
 	args := strings.Split(tag, ":")
 	if len(args) < 2 {
-		v.addValidationError(fmt.Errorf("%w: %s, for tag: %s", ErrValidationParse, v.field, tag))
-		return nil
+		return nil, fmt.Errorf("%w: %s, for tag: %s", ErrFailWrongArgs, v.field, tag)
 	}
 
-	return args
+	return args, nil
 }
 
 func (v *Validator) addValidationError(err error) {
 	v.errs = append(v.errs, ValidationError{v.field, err})
 }
 
-func (v *Validator) wrapErrors(errs error) {
+func (v *Validator) wrapErrors(err error) {
 	var validationErrs ValidationErrors
-	if errors.As(errs, &validationErrs) {
+	if errors.As(err, &validationErrs) {
 		v.errs = append(v.errs, validationErrs...)
 	}
 }

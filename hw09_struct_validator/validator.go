@@ -29,14 +29,14 @@ func (v ValidationErrors) Error() string {
 }
 
 var (
-	ErrNotStruct        = errors.New("input interface is not a struct")
-	ErrNotSupportedType = errors.New("validator unsupported type")
+	ErrFailNotStruct        = errors.New("input interface is not a struct")
+	ErrFailNotSupportedType = errors.New("validator unsupported type")
 )
 
 func Validate(v interface{}) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.Struct {
-		return ErrNotStruct
+		return ErrFailNotStruct
 	}
 
 	validator := NewValidator()
@@ -52,31 +52,34 @@ func Validate(v interface{}) error {
 		if !fieldValue.CanInterface() {
 			continue
 		}
-
+		var err error
 		validator.SetFields(tag, field.Name, fieldValue)
 		switch fieldValue.Kind() { //nolint:exhaustive
 		case reflect.String:
 			validator.SetStringValidator()
-			validator.Validate()
+			err = validator.Validate()
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			validator.SetIntegerValidator()
-			validator.Validate()
+			err = validator.Validate()
 		case reflect.Slice:
 			switch fieldValue.Type().String() {
 			case "[]string":
 				validator.SetStringValidator()
-				validateSlices(validator, fieldValue)
+				err = validateSlices(validator, fieldValue)
 			case "[]int", "[]int8", "[]int16", "[]in32", "[]int64":
 				validator.SetIntegerValidator()
-				validateSlices(validator, fieldValue)
+				err = validateSlices(validator, fieldValue)
 			}
 		case reflect.Struct:
 			if tag == "nested" {
-				errs := Validate(fieldValue.Interface())
-				validator.wrapErrors(errs)
+				err = Validate(fieldValue.Interface())
+				validator.wrapErrors(err)
 			}
 		default:
-			return ErrNotSupportedType
+			return ErrFailNotSupportedType
+		}
+		if err != nil {
+			return err
 		}
 	}
 
@@ -86,9 +89,14 @@ func Validate(v interface{}) error {
 	return nil
 }
 
-func validateSlices(validator *Validator, fieldValue reflect.Value) {
+func validateSlices(validator *Validator, fieldValue reflect.Value) error {
+	var err error
 	for i := 0; i < fieldValue.Len(); i++ {
 		validator.SetReflectValue(fieldValue.Index(i))
-		validator.Validate()
+		err = validator.Validate()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }

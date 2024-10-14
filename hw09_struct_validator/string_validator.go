@@ -9,9 +9,13 @@ import (
 )
 
 var (
-	ErrStringLengthNumber     = errors.New("value for length is not a number")
+	ErrFailWrongLengthNumber = errors.New("value for length is not a number")
+	ErrFailWrongRegexp       = errors.New("regexp is wrong")
+	ErrFailWrongSet          = errors.New("wrong parameter for in")
+)
+
+var (
 	ErrStringLength           = errors.New("length of string is wrong")
-	ErrStringRegexp           = errors.New("regexp is wrong")
 	ErrStringNotMatchedRegexp = errors.New("string is not matched regexp")
 	ErrStringNotIncludedSet   = errors.New("string is not included in set")
 )
@@ -26,51 +30,57 @@ func (sv *StringValidator) prepareParams(v *Validator) {
 	sv.value = v.value.String()
 }
 
-func (sv *StringValidator) validate(v *Validator) {
+func (sv *StringValidator) validate(v *Validator) error {
 	sv.prepareParams(v)
 	for _, tag := range v.tags {
-		args := v.parseTag(tag)
-		if args == nil {
-			return
+		args, err := v.parseTag(tag)
+		if err != nil {
+			return err
 		}
-
 		switch args[0] {
 		case "len":
-			sv.Len(args[1])
+			err = sv.Len(args[1])
 		case "regexp":
-			sv.Regexp(args[1])
+			err = sv.Regexp(args[1])
 		case "in":
-			sv.In(args[1])
+			err = sv.In(args[1])
 		default:
-			sv.v.addValidationError(fmt.Errorf("%w: %s, for tag: %s", ErrUndefinedRule, v.field, tag))
+			return fmt.Errorf("%w: %s, for tag: %s", ErrFailWrongRule, v.field, tag)
+		}
+		if err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
-func (sv *StringValidator) Len(arg string) {
+func (sv *StringValidator) Len(arg string) error {
 	condition, err := strconv.Atoi(arg)
 	if err != nil {
-		sv.v.addValidationError(ErrStringLengthNumber)
-		return
+		return ErrFailWrongLengthNumber
 	}
 	if condition != len(sv.value) {
 		sv.v.addValidationError(fmt.Errorf("%w: need %d, have %d", ErrStringLength, condition, len(sv.value)))
 	}
+	return nil
 }
 
-func (sv *StringValidator) Regexp(arg string) {
+func (sv *StringValidator) Regexp(arg string) error {
 	r, err := regexp.Compile(arg)
 	if err != nil {
-		sv.v.addValidationError(ErrStringRegexp)
-		return
+		return ErrFailWrongRegexp
 	}
 	matched := r.MatchString(sv.value)
 	if !matched {
 		sv.v.addValidationError(fmt.Errorf("%w: %s", ErrStringNotMatchedRegexp, arg))
 	}
+	return nil
 }
 
-func (sv *StringValidator) In(arg string) {
+func (sv *StringValidator) In(arg string) error {
+	if len(arg) == 0 {
+		return ErrFailWrongSet
+	}
 	set := strings.Split(arg, ",")
 	in := false
 	for _, s := range set {
@@ -82,4 +92,5 @@ func (sv *StringValidator) In(arg string) {
 	if !in {
 		sv.v.addValidationError(fmt.Errorf("%w: value %s, set %v", ErrStringNotIncludedSet, sv.value, set))
 	}
+	return nil
 }

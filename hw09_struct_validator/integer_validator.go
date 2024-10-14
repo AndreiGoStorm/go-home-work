@@ -8,11 +8,14 @@ import (
 )
 
 var (
-	ErrIntMinNumber        = errors.New("value for min is not a number")
+	ErrFailWrongMinNumber = errors.New("value for min is not a number")
+	ErrFailWrongMaxNumber = errors.New("value for max is not a number")
+	ErrFailSetNumber      = errors.New("value for in is not a number")
+)
+
+var (
 	ErrIntLessThanMin      = errors.New("less than minimum")
-	ErrIntMaxNumber        = errors.New("value for max is not a number")
 	ErrIntMoreThanMax      = errors.New("more than maximum")
-	ErrIntSetNumber        = errors.New("value for in is not a number")
 	ErrIntNotIncludedInSet = errors.New("not included in validation set")
 )
 
@@ -26,57 +29,61 @@ func (iv *IntegerValidator) prepareParams(v *Validator) {
 	iv.value = v.value.Int()
 }
 
-func (iv *IntegerValidator) validate(v *Validator) {
+func (iv *IntegerValidator) validate(v *Validator) error {
 	iv.prepareParams(v)
 	for _, tag := range v.tags {
-		args := v.parseTag(tag)
-		if args == nil {
-			return
+		args, err := v.parseTag(tag)
+		if err != nil {
+			return err
 		}
 
 		switch args[0] {
 		case "min":
-			iv.Min(args[1])
+			err = iv.Min(args[1])
 		case "max":
-			iv.Max(args[1])
+			err = iv.Max(args[1])
 		case "in":
-			iv.In(args[1])
+			err = iv.In(args[1])
 		default:
-			iv.v.addValidationError(fmt.Errorf("%w: %s, for tag: %s", ErrUndefinedRule, v.field, tag))
+			return fmt.Errorf("%w: %s, for tag: %s", ErrFailWrongRule, v.field, tag)
+		}
+		if err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
 
-func (iv *IntegerValidator) Min(arg string) {
+func (iv *IntegerValidator) Min(arg string) error {
 	condition, err := strconv.Atoi(arg)
 	if err != nil {
-		iv.v.addValidationError(ErrIntMinNumber)
-		return
+		return ErrFailWrongMinNumber
 	}
 	if int64(condition) > iv.value {
 		iv.v.addValidationError(fmt.Errorf("%w: condition %d, value %d", ErrIntLessThanMin, condition, iv.value))
 	}
+	return nil
 }
 
-func (iv *IntegerValidator) Max(arg string) {
+func (iv *IntegerValidator) Max(arg string) error {
 	condition, err := strconv.Atoi(arg)
 	if err != nil {
-		iv.v.addValidationError(ErrIntMaxNumber)
-		return
+		return ErrFailWrongMaxNumber
 	}
 	if int64(condition) < iv.value {
 		iv.v.addValidationError(fmt.Errorf("%w: condition %d, value %d", ErrIntMoreThanMax, condition, iv.value))
 	}
+	return nil
 }
 
-func (iv *IntegerValidator) In(arg string) {
+func (iv *IntegerValidator) In(arg string) error {
 	set := strings.Split(arg, ",")
 	inSet := false
 	for _, s := range set {
 		intVal, err := strconv.Atoi(s)
 		if err != nil {
-			iv.v.addValidationError(ErrIntSetNumber)
-			return
+			return ErrFailSetNumber
 		}
 		if int64(intVal) == iv.value {
 			inSet = true
@@ -86,4 +93,5 @@ func (iv *IntegerValidator) In(arg string) {
 	if !inSet {
 		iv.v.addValidationError(fmt.Errorf("%w: value %d, set %v", ErrIntNotIncludedInSet, iv.value, set))
 	}
+	return nil
 }
