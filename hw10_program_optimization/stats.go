@@ -1,8 +1,7 @@
 package hw10programoptimization
 
 import (
-	"encoding/json"
-	"fmt"
+	"bufio"
 	"io"
 	"regexp"
 	"strings"
@@ -21,46 +20,38 @@ type User struct {
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
+	reg, err := regexp.Compile("(?i).+@(.+\\." + domain + ")")
 	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
+		return nil, err
 	}
-	return countDomains(u, domain)
+	return countDomains(r, reg)
 }
 
-type users [100_000]User
+func countDomains(r io.Reader, reg *regexp.Regexp) (DomainStat, error) {
+	rdr := bufio.NewReader(r)
 
-func getUsers(r io.Reader) (result users, err error) {
-	content, err := io.ReadAll(r)
-	if err != nil {
-		return
-	}
-
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
+	result := make(DomainStat, 100)
+	var user User
+	for {
+		line, _, err := rdr.ReadLine()
+		if err == io.EOF { //nolint:errorlint
+			break
 		}
-		result[i] = user
-	}
-	return
-}
-
-func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat)
-
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
 		if err != nil {
 			return nil, err
 		}
 
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
+		err = user.UnmarshalJSON(line)
+		if err != nil {
+			return nil, err
 		}
+
+		matched := reg.FindAllStringSubmatch(user.Email, 2)
+		if matched == nil {
+			continue
+		}
+		emailDomain := strings.ToLower(matched[0][1])
+		result[emailDomain]++
 	}
 	return result, nil
 }
