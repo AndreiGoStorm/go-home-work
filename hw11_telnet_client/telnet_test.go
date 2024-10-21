@@ -5,11 +5,14 @@ import (
 	"io"
 	"net"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+var localhost = "127.0.0.1:"
 
 func TestTelnetClient(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
@@ -61,5 +64,52 @@ func TestTelnetClient(t *testing.T) {
 		}()
 
 		wg.Wait()
+	})
+
+	t.Run("Error: connection refused", func(t *testing.T) {
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+
+		client := NewTelnetClient(localhost, 10*time.Second, io.NopCloser(in), out)
+
+		require.ErrorIs(t, client.Connect(), syscall.ECONNREFUSED)
+	})
+
+	t.Run("Error: connection timeout", func(t *testing.T) {
+		l, err := net.Listen("tcp", localhost)
+		require.NoError(t, err)
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+
+		client := NewTelnetClient(l.Addr().String(), 10*time.Nanosecond, io.NopCloser(in), out)
+		err = client.Connect()
+		require.Contains(t, err.Error(), "i/o timeout")
+	})
+
+	t.Run("Error: sending for closed connection", func(t *testing.T) {
+		l, err := net.Listen("tcp", localhost)
+		require.NoError(t, err)
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+
+		client := NewTelnetClient(l.Addr().String(), 10*time.Second, io.NopCloser(in), out)
+		require.NoError(t, client.Connect())
+		require.NoError(t, l.Close())
+
+		in.WriteString("closed connection")
+		require.ErrorIs(t, client.Send(), ErrSending)
+	})
+
+	t.Run("Error: receiving for closed connection", func(t *testing.T) {
+		l, err := net.Listen("tcp", localhost)
+		require.NoError(t, err)
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+
+		client := NewTelnetClient(l.Addr().String(), 10*time.Second, io.NopCloser(in), out)
+		require.NoError(t, client.Connect())
+		require.NoError(t, l.Close())
+
+		require.ErrorIs(t, client.Receive(), ErrReceiving)
 	})
 }
