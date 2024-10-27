@@ -8,13 +8,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/app"
+	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/config"
+	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/logger"
+	internalhttp "github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/storage"
 )
 
 var configFile string
+
+const PathCalendarLog = "calendar.log"
 
 func init() {
 	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
@@ -28,17 +31,20 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
-	logg := logger.New(config.Logger.Level)
-
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
-
-	server := internalhttp.NewServer(logg, calendar)
+	conf := config.New(configFile)
+	logg := logger.New(conf.Logger.Level, PathCalendarLog)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
+
+	store := storage.New(conf)
+	if err := store.Connect(ctx); err != nil {
+		logg.Error("failed to store connect: " + err.Error())
+	}
+
+	calendar := app.New(logg, store)
+	server := internalhttp.NewServer(calendar, logg, conf)
 
 	go func() {
 		<-ctx.Done()
@@ -50,8 +56,6 @@ func main() {
 			logg.Error("failed to stop http server: " + err.Error())
 		}
 	}()
-
-	logg.Info("calendar is running...")
 
 	if err := server.Start(ctx); err != nil {
 		logg.Error("failed to start http server: " + err.Error())

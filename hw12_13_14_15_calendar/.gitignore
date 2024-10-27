@@ -1,2 +1,4 @@
 logs/
 bin/
+configs/config.toml
+configs/config-testing.toml
