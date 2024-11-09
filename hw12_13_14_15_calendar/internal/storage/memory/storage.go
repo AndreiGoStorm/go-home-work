@@ -9,7 +9,6 @@ import (
 )
 
 type Storage struct {
-	ctx    context.Context
 	events map[string]model.Event
 	mu     sync.RWMutex
 }
@@ -75,8 +74,7 @@ func (s *Storage) Delete(event model.Event) error {
 	return nil
 }
 
-func (s *Storage) Connect(ctx context.Context) error {
-	s.ctx = ctx
+func (s *Storage) Connect(_ context.Context) error {
 	s.events = make(map[string]model.Event, 50)
 	return nil
 }
@@ -86,6 +84,5 @@ func (s *Storage) Close(_ context.Context) error {
 	defer s.mu.Unlock()
 
 	s.events = nil
-	s.ctx = nil
 	return nil
 }
