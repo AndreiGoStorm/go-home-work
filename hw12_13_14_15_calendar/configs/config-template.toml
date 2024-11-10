@@ -1,0 +1,16 @@
+[logger]
+level = "INFO"
+
+[httpserver]
+host = "127.0.0.1"
+port = 5000
+
+[storage]
+driver = "in-memory"
+
+[database]
+host = "127.0.0.1"
+port = 5432
+dbname = "calendar"
+username = "user"
+password = "pass"
