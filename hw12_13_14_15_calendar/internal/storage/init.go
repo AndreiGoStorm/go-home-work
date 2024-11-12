@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/config"
 	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/model"
@@ -10,11 +11,11 @@ import (
 )
 
 type Storage interface {
-	FindAll() ([]model.Event, error)
-	FindByID(id string) (*model.Event, error)
-	Create(event model.Event) (string, error)
-	Update(event model.Event) error
-	Delete(event model.Event) error
+	GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.Event, error)
+	GetByID(id string) (*model.Event, error)
+	Create(event *model.Event) (string, error)
+	Update(event *model.Event) error
+	Delete(event *model.Event) error
 	Connect(ctx context.Context) error
 	Close(ctx context.Context) error
 }

@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package eventservice;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/proto;event_service";
+
+service EventService{
+  rpc GetEventByID(GetEventByIDRequest) returns (GetEventByIDResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/{ID}"
+    };
+  }
+  rpc GetEventsByDay(GetEventsByDayRequest) returns (GetEventsByDayResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/day"
+    };
+  }
+  rpc GetEventsByWeek(GetEventsByWeekRequest) returns (GetEventsByWeekResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/week"
+    };
+  }
+  rpc GetEventsByMonth(GetEventsByMonthRequest) returns (GetEventsByMonthResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/month"
+    };
+  }
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse) {
+    option (google.api.http) = {
+      post: "/v1/events"
+      body: "*"
+    };
+  };
+  rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse) {
+    option (google.api.http) = {
+      patch: "/v1/events/{ID}"
+      body: "*"
+    };
+  };
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse) {
+    option (google.api.http) = {
+      delete: "/v1/events/{ID}"
+    };
+  };
+}
+
+message GetEventByIDRequest {
+  string ID =1;
+}
+
+message Event {
+  string ID=1;
+  string title=2;
+  google.protobuf.Timestamp start=3;
+  google.protobuf.Timestamp finish=43;
+  string description=5;
+  string userID=6;
+  int32 remind=7;
+}
+
+message GetEventByIDResponse{
+  Event event = 1;
+}
+
+message GetEventsByDayRequest {
+  google.protobuf.Timestamp date=1;
+}
+
+message GetEventsByDayResponse {
+  repeated Event events = 1;
+}
+
+message GetEventsByWeekRequest {
+  google.protobuf.Timestamp date=1;
+}
+
+message GetEventsByWeekResponse {
+  repeated Event events = 1;
+}
+
+message GetEventsByMonthRequest {
+  google.protobuf.Timestamp date=1;
+}
+
+message GetEventsByMonthResponse {
+  repeated Event events = 1;
+}
+
+message CreateEvent {
+  string title=1;
+  google.protobuf.Timestamp start=2;
+  google.protobuf.Timestamp finish=3;
+  string description=4;
+  string userID=5;
+  int32 remind=6;
+}
+
+message CreateEventRequest {
+  CreateEvent event = 1;
+}
+
+message CreateEventResponse {
+  string ID = 1;
+}
+
+message UpdateEvent {
+  string title=1;
+  google.protobuf.Timestamp finish=2;
+  string description=3;
+  int32 remind=5;
+}
+
+message UpdateEventRequest {
+  string ID = 1;
+  UpdateEvent event = 2;
+}
+
+message UpdateEventResponse {
+  string ID = 1;
+}
+
+message DeleteEventRequest {
+  string ID = 1;
+}
+
+message DeleteEventResponse {
+  string ID = 1;
+}

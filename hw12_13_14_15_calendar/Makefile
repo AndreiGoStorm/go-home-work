@@ -40,3 +40,18 @@ migrate-up:
 migrate-down:
 	cd migrations && \
 	goose postgres "dbname=calendar sslmode=disable host=10.90.0.5 port=5432 password=user user=user" down
+
+install:
+	go get \
+		github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
+		github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2 \
+		google.golang.org/grpc/cmd/protoc-gen-go-grpc \
+		google.golang.org/protobuf/cmd/protoc-gen-go
+
+generate:
+	mkdir -p api/pb
+	protoc -I ./api \
+		--go_out ./api/pb --go_opt paths=source_relative \
+		--go-grpc_out ./api/pb --go-grpc_opt paths=source_relative \
+		--grpc-gateway_out ./api/pb --grpc-gateway_opt paths=source_relative \
+		./api/event/*.proto

@@ -17,10 +17,8 @@ import (
 
 var configFile string
 
-const PathCalendarLog = "calendar.log"
-
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "configs/config.toml", "Path to configuration file")
 }
 
 func main() {
@@ -32,7 +30,7 @@ func main() {
 	}
 
 	conf := config.New(configFile)
-	logg := logger.New(conf.Logger.Level, PathCalendarLog)
+	logg := logger.New(conf.Logger.Level)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -40,7 +38,7 @@ func main() {
 
 	store := storage.New(conf)
 	if err := store.Connect(ctx); err != nil {
-		logg.Error("failed to store connect: " + err.Error())
+		logg.Error("failed to store connect", err)
 	}
 
 	calendar := app.New(logg, store)
@@ -53,12 +51,12 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
+			logg.Error("failed to stop http server: ", err)
 		}
 	}()
 
 	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
+		logg.Error("failed to start http server: ", err)
 		cancel()
 		os.Exit(1) //nolint:gocritic
 	}

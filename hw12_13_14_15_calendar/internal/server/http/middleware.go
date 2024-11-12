@@ -9,19 +9,27 @@ import (
 	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/logger"
 )
 
-func loggingMiddleware(next http.Handler, logg *logger.Logger) http.Handler {
+type Middleware struct {
+	logg *logger.Logger
+}
+
+func NewMiddleware(logg *logger.Logger) *Middleware {
+	return &Middleware{logg}
+}
+
+func (m *Middleware) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			logg.Error(err.Error())
+			m.logg.Error("loggingMiddleware.SplitHostPort", err)
 		}
-		logg.Info(buildLoggingString(r, ip, start))
+		m.logg.Info(m.buildLoggingString(r, ip, start))
 		next.ServeHTTP(w, r)
 	})
 }
 
-func buildLoggingString(r *http.Request, ip string, start time.Time) string {
+func (m *Middleware) buildLoggingString(r *http.Request, ip string, start time.Time) string {
 	var builder strings.Builder
 	builder.WriteString("ip - ")
 	builder.WriteString(ip)

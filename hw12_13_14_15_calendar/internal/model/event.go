@@ -14,6 +14,6 @@ type Event struct {
 	Start       time.Time
 	Finish      time.Time
 	Description sql.NullString
-	UserID      int
-	Remind      sql.NullInt64
+	UserID      string
+	Remind      int32
 }
