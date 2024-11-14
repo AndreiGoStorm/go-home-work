@@ -3,13 +3,14 @@ package memorystorage
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/internal/model"
 	"github.com/google/uuid"
 )
 
 type Storage struct {
-	events map[string]model.Event
+	events map[string]*model.Event
 	mu     sync.RWMutex
 }
 
@@ -17,29 +18,34 @@ func New() *Storage {
 	return &Storage{}
 }
 
-func (s *Storage) FindAll() ([]model.Event, error) {
+func (s *Storage) GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	events := make([]model.Event, 0, len(s.events))
+	events := make([]*model.Event, 0, 50)
 	for _, event := range s.events {
-		events = append(events, event)
+		if event.Start.After(eventStart) && event.Start.Before(eventFinish) {
+			events = append(events, event)
+		}
+		if event.Start.Equal(eventStart) {
+			events = append(events, event)
+		}
 	}
 
 	return events, nil
 }
 
-func (s *Storage) FindByID(id string) (*model.Event, error) {
+func (s *Storage) GetByID(id string) (*model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	event, ok := s.events[id]
 	if !ok {
 		return nil, model.ErrEventNotFound
 	}
-	return &event, nil
+	return event, nil
 }
 
-func (s *Storage) Create(event model.Event) (string, error) {
+func (s *Storage) Create(event *model.Event) (string, error) {
 	eventUUID, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
@@ -53,12 +59,7 @@ func (s *Storage) Create(event model.Event) (string, error) {
 	return event.ID, nil
 }
 
-func (s *Storage) Update(event model.Event) error {
-	_, err := s.FindByID(event.ID)
-	if err != nil {
-		return err
-	}
-
+func (s *Storage) Update(event *model.Event) error {
 	s.mu.Lock()
 	s.events[event.ID] = event
 	s.mu.Unlock()
@@ -66,7 +67,7 @@ func (s *Storage) Update(event model.Event) error {
 	return nil
 }
 
-func (s *Storage) Delete(event model.Event) error {
+func (s *Storage) Delete(event *model.Event) error {
 	s.mu.Lock()
 	delete(s.events, event.ID)
 	s.mu.Unlock()
@@ -75,7 +76,7 @@ func (s *Storage) Delete(event model.Event) error {
 }
 
 func (s *Storage) Connect(_ context.Context) error {
-	s.events = make(map[string]model.Event, 50)
+	s.events = make(map[string]*model.Event, 50)
 	return nil
 }
 

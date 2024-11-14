@@ -3,13 +3,13 @@
 SELECT 'up SQL query';
 -- +goose StatementEnd
 CREATE TABLE events (
-    id varchar NOT NULL,
+    id VARCHAR(36) NOT NULL,
     title VARCHAR(255) NOT NULL,
     start TIMESTAMP NOT NULL,
     finish TIMESTAMP NOT NULL,
     description TEXT NULL,
-    user_id INT NOT NULL,
-    remind INT NULL
+    user_id VARCHAR(36) NOT NULL,
+    remind INT NOT NULL DEFAULT 0
 );
 
 -- +goose Down

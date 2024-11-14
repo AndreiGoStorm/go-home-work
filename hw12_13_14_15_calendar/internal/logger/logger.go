@@ -8,18 +8,13 @@ import (
 
 type Logger struct {
 	logLevel *slog.LevelVar
-	slog     *slog.Logger
-	file     *os.File
+	Slog     *slog.Logger
 }
 
-func New(level, logFile string) *Logger {
+func New(level string) *Logger {
 	logger := new(Logger)
-	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
-	if err != nil {
-		return nil
-	}
 	logger.logLevel = &slog.LevelVar{}
-	logger.slog = slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{
+	logger.Slog = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logger.logLevel,
 	}))
 
@@ -35,7 +30,6 @@ func New(level, logFile string) *Logger {
 		l = slog.LevelInfo
 	}
 	logger.SetLevel(l)
-	logger.file = file
 
 	return logger
 }
@@ -45,21 +39,17 @@ func (l *Logger) SetLevel(level slog.Level) {
 }
 
 func (l *Logger) Info(msg string) {
-	l.slog.Info(msg)
+	l.Slog.Info(msg)
 }
 
-func (l *Logger) Error(msg string) {
-	l.slog.Error(msg)
+func (l *Logger) Error(msg string, err error) {
+	l.Slog.Error(msg, "error", err)
 }
 
-func (l *Logger) Warn(msg string) {
-	l.slog.Warn(msg)
+func (l *Logger) Warn(msg string, err error) {
+	l.Slog.Warn(msg, "warning", err)
 }
 
-func (l *Logger) Debug(msg string) {
-	l.slog.Debug(msg)
-}
-
-func (l *Logger) Close() {
-	l.file.Close()
+func (l *Logger) Debug(msg string, err error) {
+	l.Slog.Debug(msg, "debug", err)
 }

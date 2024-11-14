@@ -24,16 +24,21 @@ func New(db config.Database) *Storage {
 	return &Storage{dns: dns}
 }
 
-func (s *Storage) FindAll() ([]model.Event, error) {
-	query := `select * from events`
+func (s *Storage) GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.Event, error) {
+	query := `select * from events where start >= $1 AND start < $2 order by start`
+	stmp, err := s.db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmp.Close()
 
-	rows, err := s.db.QueryContext(s.ctx, query)
+	rows, err := s.db.QueryContext(s.ctx, query, eventStart, eventFinish)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	events := make([]model.Event, 0, 10)
+	events := make([]*model.Event, 0, 50)
 
 	for rows.Next() {
 		var event model.Event
@@ -48,13 +53,13 @@ func (s *Storage) FindAll() ([]model.Event, error) {
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, event)
+		events = append(events, &event)
 	}
 
 	return events, nil
 }
 
-func (s *Storage) FindByID(id string) (*model.Event, error) {
+func (s *Storage) GetByID(id string) (*model.Event, error) {
 	query := `select * from events where id = $1`
 	stmp, err := s.db.Prepare(query)
 	if err != nil {
@@ -79,7 +84,7 @@ func (s *Storage) FindByID(id string) (*model.Event, error) {
 	return event, nil
 }
 
-func (s *Storage) Create(event model.Event) (string, error) {
+func (s *Storage) Create(event *model.Event) (string, error) {
 	eventUUID, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
@@ -119,14 +124,13 @@ func (s *Storage) Create(event model.Event) (string, error) {
 	return event.ID, nil
 }
 
-func (s *Storage) Update(event model.Event) error {
+func (s *Storage) Update(event *model.Event) error {
 	query := `UPDATE events
 		SET	title = $1,
-			start = $2,
-			finish = $3,
-			description = $4,
-			user_id = $5
-		WHERE id = $6`
+			finish = $2,
+			description = $3,
+			remind = $4
+		WHERE id = $5`
 
 	stmt, err := s.db.Prepare(query)
 	if err != nil {
@@ -134,30 +138,43 @@ func (s *Storage) Update(event model.Event) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(
+	result, err := stmt.Exec(
 		event.Title,
-		event.Start,
 		event.Finish,
 		event.Description,
-		event.UserID,
+		event.Remind,
 		event.ID)
 	if err != nil {
 		return fmt.Errorf("failed to load driver: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to rows affected: %w", err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("event does not exist")
 	}
 
 	return nil
 }
 
-func (s *Storage) Delete(event model.Event) error {
+func (s *Storage) Delete(event *model.Event) error {
 	stmt, err := s.db.Prepare(`delete from events where id = $1`)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(event.ID)
+	result, err := stmt.Exec(event.ID)
 	if err != nil {
 		return fmt.Errorf("failed to load driver: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to rows affected: %w", err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("event does not exist")
 	}
 
 	return nil
