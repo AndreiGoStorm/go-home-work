@@ -14,3 +14,10 @@ port = 5432
 dbname = "calendar_testing"
 username = "user"
 password = "user"
+
+[rabbit]
+name = "calendar"
+user = "user"
+password = "user"
+host = "10.90.0.8"
+port = 5672

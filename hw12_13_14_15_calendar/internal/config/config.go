@@ -12,6 +12,7 @@ type Config struct {
 	HTTPServer HTTPServer
 	Storage    Storage
 	Database   Database
+	Rabbit     Rabbit
 }
 
 type LoggerConf struct {
@@ -32,6 +33,15 @@ type Database struct {
 	Port     int
 	DBName   string
 	Username string
+	Password string
+}
+
+type Rabbit struct {
+	Type     string
+	Name     string
+	Host     string
+	Port     int
+	User     string
 	Password string
 }
 

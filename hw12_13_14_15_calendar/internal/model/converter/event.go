@@ -2,6 +2,7 @@ package converter
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	ep "github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/api/pb/event"
@@ -18,6 +19,7 @@ func EventModelToProto(event *model.Event) *ep.Event {
 		Description: event.Description.String,
 		UserID:      event.UserID,
 		Remind:      event.Remind,
+		RemindDate:  timestamppb.New(event.RemindDate),
 	}
 }
 
@@ -28,25 +30,34 @@ func EventModelsToProtos(events []*model.Event) (result []*ep.Event) {
 	return result
 }
 
-func GetDayDatesFromProto(req *ep.GetEventsByDayRequest) (eventStart, eventFinish time.Time) {
+func GetDayDatesFromProto(req *ep.GetEventsByDayRequest) (*time.Time, *time.Time, error) {
+	if req.GetDate() == nil {
+		return nil, nil, errors.New("wrong date")
+	}
 	date := req.GetDate().AsTime()
-	eventStart = date.Truncate(24 * time.Hour)
-	eventFinish = eventStart.Add(24 * time.Hour)
-	return eventStart, eventFinish
+	start := date.Truncate(24 * time.Hour)
+	finish := start.Add(24 * time.Hour)
+	return &start, &finish, nil
 }
 
-func GetWeekDatesFromProto(req *ep.GetEventsByWeekRequest) (eventStart, eventFinish time.Time) {
+func GetWeekDatesFromProto(req *ep.GetEventsByWeekRequest) (*time.Time, *time.Time, error) {
+	if req.GetDate() == nil {
+		return nil, nil, errors.New("wrong date")
+	}
 	date := req.GetDate().AsTime()
-	eventStart = date.Truncate(7 * 24 * time.Hour)
-	eventFinish = eventStart.AddDate(0, 0, 7)
-	return eventStart, eventFinish
+	start := date.Truncate(7 * 24 * time.Hour)
+	finish := start.AddDate(0, 0, 7)
+	return &start, &finish, nil
 }
 
-func GetMonthDatesFromProto(req *ep.GetEventsByMonthRequest) (eventStart, eventFinish time.Time) {
+func GetMonthDatesFromProto(req *ep.GetEventsByMonthRequest) (*time.Time, *time.Time, error) {
+	if req.GetDate() == nil {
+		return nil, nil, errors.New("wrong date")
+	}
 	date := req.GetDate().AsTime()
-	eventStart = time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
-	eventFinish = eventStart.AddDate(0, 1, 0)
-	return eventStart, eventFinish
+	start := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+	finish := start.AddDate(0, 1, 0)
+	return &start, &finish, nil
 }
 
 func CreateEventRequestToModel(req *ep.CreateEventRequest) *model.Event {
@@ -60,13 +71,17 @@ func CreateEventRequestToModel(req *ep.CreateEventRequest) *model.Event {
 		description.Valid = false
 	}
 
+	start := event.GetStart().AsTime()
+	remindDate := GetRemindDate(start, int(event.GetRemind()))
+
 	return &model.Event{
 		Title:       event.GetTitle(),
-		Start:       event.GetStart().AsTime(),
+		Start:       start,
 		Finish:      event.GetFinish().AsTime(),
 		Description: description,
 		UserID:      event.GetUserID(),
 		Remind:      event.GetRemind(),
+		RemindDate:  remindDate,
 	}
 }
 
@@ -88,4 +103,12 @@ func UpdateEventRequestToModel(req *ep.UpdateEventRequest) *model.Event {
 		Description: description,
 		Remind:      event.GetRemind(),
 	}
+}
+
+func GetRemindDate(date time.Time, remind int) time.Time {
+	remindDate := date
+	if remind > 0 {
+		remindDate = remindDate.AddDate(0, 0, (-1)*remind)
+	}
+	return remindDate
 }

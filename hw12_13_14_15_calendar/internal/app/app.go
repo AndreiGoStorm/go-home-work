@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	ep "github.com/AndreiGoStorm/go-home-work/hw12_13_14_15_calendar/api/pb/event"
@@ -43,13 +42,12 @@ func (a *App) GetEventsByDay(ctx context.Context, req *ep.GetEventsByDayRequest)
 ) {
 	defer ctx.Done()
 
-	if req.GetDate() == nil {
-		err := errors.New("wrong date")
+	start, finish, err := converter.GetDayDatesFromProto(req)
+	if err != nil {
 		a.logg.Warn("GetEventsByDay", err)
 		return nil, err
 	}
-	eventStart, eventFinish := converter.GetDayDatesFromProto(req)
-	events, err := a.storage.GetEventsByDates(eventStart, eventFinish)
+	events, err := a.storage.GetEventsByDates(*start, *finish)
 	if err != nil {
 		a.logg.Warn("GetEventsByDay", err)
 		return nil, model.ErrEventNotFound
@@ -66,13 +64,12 @@ func (a *App) GetEventsByWeek(ctx context.Context, req *ep.GetEventsByWeekReques
 ) {
 	defer ctx.Done()
 
-	if req.GetDate() == nil {
-		err := errors.New("wrong date")
+	start, finish, err := converter.GetWeekDatesFromProto(req)
+	if err != nil {
 		a.logg.Warn("GetEventsByWeek", err)
 		return nil, err
 	}
-	eventStart, eventFinish := converter.GetWeekDatesFromProto(req)
-	events, err := a.storage.GetEventsByDates(eventStart, eventFinish)
+	events, err := a.storage.GetEventsByDates(*start, *finish)
 	if err != nil {
 		a.logg.Warn("GetEventsByWeek", err)
 		return nil, model.ErrEventNotFound
@@ -89,13 +86,12 @@ func (a *App) GetEventsByMonth(ctx context.Context, req *ep.GetEventsByMonthRequ
 ) {
 	defer ctx.Done()
 
-	if req.GetDate() == nil {
-		err := errors.New("wrong date")
+	start, finish, err := converter.GetMonthDatesFromProto(req)
+	if err != nil {
 		a.logg.Warn("GetEventsByMonth", err)
 		return nil, err
 	}
-	eventStart, eventFinish := converter.GetMonthDatesFromProto(req)
-	events, err := a.storage.GetEventsByDates(eventStart, eventFinish)
+	events, err := a.storage.GetEventsByDates(*start, *finish)
 	if err != nil {
 		a.logg.Warn("GetEventsByMonth", err)
 		return nil, model.ErrEventNotFound
@@ -145,6 +141,7 @@ func (a *App) UpdateEvent(ctx context.Context, req *ep.UpdateEventRequest) (*ep.
 
 	event.Start = existed.Start
 	event.UserID = existed.UserID
+	event.RemindDate = converter.GetRemindDate(event.Start, int(event.Remind))
 	err = a.storage.Update(event)
 	if err != nil {
 		a.logg.Warn("UpdateEvent", err)

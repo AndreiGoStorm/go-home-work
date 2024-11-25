@@ -16,4 +16,5 @@ type Event struct {
 	Description sql.NullString
 	UserID      string
 	Remind      int32
+	RemindDate  time.Time
 }

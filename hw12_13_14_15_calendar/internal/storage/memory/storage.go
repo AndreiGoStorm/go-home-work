@@ -24,14 +24,27 @@ func (s *Storage) GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.
 
 	events := make([]*model.Event, 0, 50)
 	for _, event := range s.events {
-		if event.Start.After(eventStart) && event.Start.Before(eventFinish) {
-			events = append(events, event)
-		}
-		if event.Start.Equal(eventStart) {
+		isDateInRange := event.Start.After(eventStart) && event.Start.Before(eventFinish)
+		if isDateInRange || event.Start.Equal(eventStart) {
 			events = append(events, event)
 		}
 	}
+	return events, nil
+}
 
+func (s *Storage) GetRemindEvents(start time.Time) ([]*model.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	start = start.Truncate(24 * time.Hour)
+	finish := start.AddDate(0, 0, 1)
+	events := make([]*model.Event, 0, 50)
+	for _, event := range s.events {
+		isDateInRange := event.RemindDate.After(start) && event.RemindDate.Before(finish)
+		if isDateInRange || event.RemindDate.Equal(start) {
+			events = append(events, event)
+		}
+	}
 	return events, nil
 }
 
@@ -55,7 +68,6 @@ func (s *Storage) Create(event *model.Event) (string, error) {
 	s.mu.Lock()
 	s.events[event.ID] = event
 	s.mu.Unlock()
-
 	return event.ID, nil
 }
 
@@ -63,7 +75,6 @@ func (s *Storage) Update(event *model.Event) error {
 	s.mu.Lock()
 	s.events[event.ID] = event
 	s.mu.Unlock()
-
 	return nil
 }
 
@@ -71,7 +82,19 @@ func (s *Storage) Delete(event *model.Event) error {
 	s.mu.Lock()
 	delete(s.events, event.ID)
 	s.mu.Unlock()
+	return nil
+}
 
+func (s *Storage) DeleteOldEvents() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	start := time.Now().Truncate(24 * time.Hour)
+	start = start.AddDate(-1, 0, 0)
+	for _, event := range s.events {
+		if event.RemindDate.Before(start) || event.RemindDate.Equal(start) {
+			delete(s.events, event.ID)
+		}
+	}
 	return nil
 }
 

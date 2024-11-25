@@ -39,7 +39,6 @@ func (s *Storage) GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.
 	defer rows.Close()
 
 	events := make([]*model.Event, 0, 50)
-
 	for rows.Next() {
 		var event model.Event
 		err = rows.Scan(
@@ -49,13 +48,50 @@ func (s *Storage) GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.
 			&event.Finish,
 			&event.Description,
 			&event.UserID,
-			&event.Remind)
+			&event.Remind,
+			&event.RemindDate)
 		if err != nil {
 			return nil, err
 		}
 		events = append(events, &event)
 	}
 
+	return events, nil
+}
+
+func (s *Storage) GetRemindEvents(start time.Time) ([]*model.Event, error) {
+	query := `select * from events where remind_date >= $1 AND remind_date < $2`
+	stmp, err := s.db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmp.Close()
+
+	start = start.Truncate(24 * time.Hour)
+	finish := start.AddDate(0, 0, 1)
+	rows, err := s.db.QueryContext(s.ctx, query, start, finish)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	events := make([]*model.Event, 0, 50)
+	for rows.Next() {
+		var event model.Event
+		err = rows.Scan(
+			&event.ID,
+			&event.Title,
+			&event.Start,
+			&event.Finish,
+			&event.Description,
+			&event.UserID,
+			&event.Remind,
+			&event.RemindDate)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, &event)
+	}
 	return events, nil
 }
 
@@ -76,7 +112,8 @@ func (s *Storage) GetByID(id string) (*model.Event, error) {
 		&event.Finish,
 		&event.Description,
 		&event.UserID,
-		&event.Remind)
+		&event.Remind,
+		&event.RemindDate)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +135,9 @@ func (s *Storage) Create(event *model.Event) (string, error) {
 		finish,
 		description,
 		user_id,
-		remind
-	) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		remind,
+		remind_date                    
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	stmp, err := s.db.PrepareContext(s.ctx, query)
 	if err != nil {
@@ -116,7 +154,8 @@ func (s *Storage) Create(event *model.Event) (string, error) {
 		finish,
 		event.Description,
 		event.UserID,
-		event.Remind)
+		&event.Remind,
+		&event.RemindDate)
 	if err != nil {
 		return "", err
 	}
@@ -129,8 +168,9 @@ func (s *Storage) Update(event *model.Event) error {
 		SET	title = $1,
 			finish = $2,
 			description = $3,
-			remind = $4
-		WHERE id = $5`
+			remind = $4,
+			remind_date = $5
+		WHERE id = $6`
 
 	stmt, err := s.db.Prepare(query)
 	if err != nil {
@@ -143,6 +183,7 @@ func (s *Storage) Update(event *model.Event) error {
 		event.Finish,
 		event.Description,
 		event.Remind,
+		event.RemindDate,
 		event.ID)
 	if err != nil {
 		return fmt.Errorf("failed to load driver: %w", err)
@@ -175,6 +216,23 @@ func (s *Storage) Delete(event *model.Event) error {
 	}
 	if affected == 0 {
 		return fmt.Errorf("event does not exist")
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteOldEvents() error {
+	stmt, err := s.db.Prepare(`delete from events where remind_date < $1`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	start := time.Now().Truncate(24 * time.Hour)
+	start = start.AddDate(-1, 0, 0)
+	_, err = stmt.Exec(start)
+	if err != nil {
+		return fmt.Errorf("failed to load driver: %w", err)
 	}
 
 	return nil

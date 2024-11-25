@@ -55,10 +55,11 @@ message Event {
   string ID=1;
   string title=2;
   google.protobuf.Timestamp start=3;
-  google.protobuf.Timestamp finish=43;
+  google.protobuf.Timestamp finish=4;
   string description=5;
   string userID=6;
   int32 remind=7;
+  google.protobuf.Timestamp remindDate=8;
 }
 
 message GetEventByIDResponse{

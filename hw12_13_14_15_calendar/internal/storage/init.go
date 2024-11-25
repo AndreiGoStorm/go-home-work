@@ -12,10 +12,12 @@ import (
 
 type Storage interface {
 	GetEventsByDates(eventStart, eventFinish time.Time) ([]*model.Event, error)
+	GetRemindEvents(start time.Time) ([]*model.Event, error)
 	GetByID(id string) (*model.Event, error)
 	Create(event *model.Event) (string, error)
 	Update(event *model.Event) error
 	Delete(event *model.Event) error
+	DeleteOldEvents() error
 	Connect(ctx context.Context) error
 	Close(ctx context.Context) error
 }
