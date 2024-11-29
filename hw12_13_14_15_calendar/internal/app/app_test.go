@@ -35,6 +35,7 @@ func TestApp(t *testing.T) {
 		require.Equal(t, createdReq.Event.Description, getRes.Event.Description)
 		require.Equal(t, createdReq.Event.UserID, getRes.Event.UserID)
 		require.Equal(t, createdReq.Event.Remind, getRes.Event.Remind)
+		require.Equal(t, createdReq.Event.Remind, getRes.Event.Remind)
 	})
 
 	t.Run("create event by id", func(t *testing.T) {
@@ -69,6 +70,11 @@ func TestApp(t *testing.T) {
 		expectedStart := createdReq.Event.Start.AsTime().Format(time.DateTime)
 		actualStart := getRes.Event.Start.AsTime().Format(time.DateTime)
 		require.Equal(t, expectedStart, actualStart)
+		remind := int(updatedReq.Event.Remind)
+		start := getRes.Event.Start.AsTime()
+		expectedStart = start.AddDate(0, 0, (-1)*remind).Format(time.DateTime)
+		actualFinish = getRes.Event.RemindDate.AsTime().Format(time.DateTime)
+		require.Equal(t, expectedStart, actualFinish)
 	})
 
 	t.Run("update event with not existed ID", func(t *testing.T) {
@@ -120,7 +126,7 @@ func generateCreateEvent() *ep.CreateEvent {
 		Finish:      finish,
 		Description: "create event description",
 		UserID:      UUID.String(),
-		Remind:      int32(1000),
+		Remind:      int32(1),
 	}
 }
 
@@ -130,7 +136,7 @@ func generateUpdateEvent() *ep.UpdateEvent {
 		Title:       "update event title",
 		Finish:      finish,
 		Description: "update event description",
-		Remind:      int32(2000),
+		Remind:      int32(2),
 	}
 }
 

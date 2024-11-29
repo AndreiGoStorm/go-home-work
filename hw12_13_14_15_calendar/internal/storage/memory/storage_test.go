@@ -16,10 +16,10 @@ var event = model.Event{
 	Finish:      time.Now(),
 	Description: sql.NullString{String: "description for event", Valid: true},
 	UserID:      "03d70529-132e-4a90-ac1c-a24488fd20c5",
-	Remind:      100,
+	Remind:      2,
 }
 
-func TestStorage(t *testing.T) {
+func TestStorageGet(t *testing.T) {
 	t.Run("get events on day", func(t *testing.T) {
 		s := New()
 		connect := s.Connect(context.Background())
@@ -46,6 +46,7 @@ func TestStorage(t *testing.T) {
 		connect := s.Connect(context.Background())
 		require.NoError(t, connect)
 
+		event.Start = time.Now()
 		_, err := s.Create(generateEvent())
 		require.NoError(t, err)
 
@@ -88,6 +89,26 @@ func TestStorage(t *testing.T) {
 		require.Len(t, eventsOnMonth, 2)
 	})
 
+	t.Run("get remind events", func(t *testing.T) {
+		s := New()
+		connect := s.Connect(context.Background())
+		require.NoError(t, connect)
+
+		_, err := s.Create(generateEvent())
+		require.NoError(t, err)
+
+		_, err = s.Create(generateEvent())
+		require.NoError(t, err)
+
+		event.Start = time.Now().AddDate(0, 0, 2)
+		_, err = s.Create(generateEvent())
+		require.NoError(t, err)
+
+		eventsOnMonth, err := s.GetRemindEvents(time.Now())
+		require.NoError(t, err)
+		require.Len(t, eventsOnMonth, 1)
+	})
+
 	t.Run("get event by id", func(t *testing.T) {
 		s := New()
 		connect := s.Connect(context.Background())
@@ -106,7 +127,9 @@ func TestStorage(t *testing.T) {
 		require.Equal(t, event.UserID, createdEvent.UserID)
 		require.Equal(t, event.Remind, createdEvent.Remind)
 	})
+}
 
+func TestStorageCreate(t *testing.T) {
 	t.Run("create event", func(t *testing.T) {
 		s := New()
 		connect := s.Connect(context.Background())
@@ -119,7 +142,9 @@ func TestStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, ID, createdEvent.ID)
 	})
+}
 
+func TestStorageUpdate(t *testing.T) {
 	t.Run("update event", func(t *testing.T) {
 		newTitle := "new title"
 		newUserID := "0c70fc6c-305b-4409-89d5-8bea95d11af7"
@@ -143,7 +168,9 @@ func TestStorage(t *testing.T) {
 		require.Equal(t, newTitle, updatedEvent.Title)
 		require.Equal(t, newUserID, updatedEvent.UserID)
 	})
+}
 
+func TestStorageDelete(t *testing.T) {
 	t.Run("delete event", func(t *testing.T) {
 		s := New()
 		connect := s.Connect(context.Background())
@@ -162,9 +189,35 @@ func TestStorage(t *testing.T) {
 		require.Nil(t, deletedEvent)
 		require.EqualError(t, err, "event not found in storage")
 	})
+
+	t.Run("delete all events", func(t *testing.T) {
+		s := New()
+		connect := s.Connect(context.Background())
+		require.NoError(t, connect)
+
+		_, err := s.Create(generateEvent())
+		require.NoError(t, err)
+
+		_, err = s.Create(generateEvent())
+		require.NoError(t, err)
+
+		eventForDelete := generateEvent()
+		eventForDelete.RemindDate = time.Now().AddDate(-1, -1, -1)
+		ID, err := s.Create(eventForDelete)
+		require.NoError(t, err)
+
+		err = s.DeleteOldEvents()
+		require.NoError(t, err)
+
+		deletedEvent, err := s.GetByID(ID)
+		require.Nil(t, deletedEvent)
+		require.EqualError(t, err, "event not found in storage")
+	})
 }
 
 func generateEvent() *model.Event {
+	remind := event.Remind
+	remindDate := event.Start.AddDate(0, 0, (-1)*int(remind))
 	return &model.Event{
 		Title:       event.Title,
 		Start:       event.Start,
@@ -172,5 +225,6 @@ func generateEvent() *model.Event {
 		Description: event.Description,
 		UserID:      event.UserID,
 		Remind:      event.Remind,
+		RemindDate:  remindDate,
 	}
 }

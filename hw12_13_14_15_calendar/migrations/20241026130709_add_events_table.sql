@@ -9,7 +9,8 @@ CREATE TABLE events (
     finish TIMESTAMP NOT NULL,
     description TEXT NULL,
     user_id VARCHAR(36) NOT NULL,
-    remind INT NOT NULL DEFAULT 0
+    remind INT NOT NULL DEFAULT 0,
+    remind_date TIMESTAMP NOT NULL
 );
 
 -- +goose Down
