@@ -2,22 +2,22 @@
 level = "INFO"
 
 [httpserver]
-host = "127.0.0.1"
+host = "100.90.10.4"
 port = 5000
 
 [storage]
-driver = "in-memory"
+driver = "sql"
 
 [database]
-host = "127.0.0.1"
+host = "100.90.10.2"
 port = 5432
 dbname = "calendar"
 username = "user"
-password = "pass"
+password = "user"
 
 [rabbit]
-name = "calendar"
-user = "guest"
-password = "quest"
-host = "127.0.0.1"
+host = "100.90.10.3"
 port = 5672
+name = "calendar"
+user = "user"
+password = "user"

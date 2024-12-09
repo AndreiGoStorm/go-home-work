@@ -39,7 +39,7 @@ lint: install-lint-deps
 
 migrate-up:
 	cd migrations && \
-	goose postgres "dbname=calendar sslmode=disable host=10.90.0.5 port=5432 password=user user=user" up
+	goose postgres "dbname=calendar sslmode=disable host=100.90.10.2 port=5432 password=user user=user" up
 
 migrate-down:
 	cd migrations && \
@@ -59,3 +59,15 @@ generate:
 		--go-grpc_out ./api/pb --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out ./api/pb --grpc-gateway_opt paths=source_relative \
 		./api/event/*.proto
+
+up-build:
+	cd deployments && \
+	docker-compose --project-name="calendar" up --build
+
+up:
+	cd deployments && \
+	docker-compose --project-name="calendar" up -d
+
+down:
+	cd deployments && \
+	docker-compose --project-name="calendar" stop

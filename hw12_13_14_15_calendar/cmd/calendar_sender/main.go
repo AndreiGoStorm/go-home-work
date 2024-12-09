@@ -34,13 +34,13 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	rabbit := rabbit.New(conf, logg)
-	if err := rabbit.Connect(); err != nil {
+	rab := rabbit.New(conf, logg)
+	if err := rab.Connect(); err != nil {
 		logg.Error("failed to rabbit connect", err)
 	}
-	defer rabbit.Close()
+	defer rab.Close()
 
-	send := sender.New(rabbit, logg)
+	send := sender.New(rab, logg)
 	if err := send.Run(ctx); err != nil {
 		logg.Error("failed to run sender", err)
 		cancel()
