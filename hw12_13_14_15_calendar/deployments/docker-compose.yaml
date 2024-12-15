@@ -1,1 +1,137 @@
-version: "3"
+services:
+  postgres-calendar:
+    container_name: calendar_postgres
+    image: postgres:latest
+    hostname: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: calendar
+    ports: [ '5432:5432' ]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      retries: 5
+      start_period: 15s
+      timeout: 10s
+    volumes:
+      - 'postgres-data:/var/lib/postgres'
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.2 }
+
+  rabbitmq:
+    container_name: calendar_rabbitmq
+    image: rabbitmq:latest
+    hostname: localhost
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: user
+    ports: [ '5672:5672' ]
+    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      retries: 3
+      timeout: 10s
+    volumes:
+      - 'rmq-data:/var/lib/rabbitmq'
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.3 }
+
+  calendar:
+    container_name: calendar_app
+    build:
+      context: ../
+      dockerfile: build/calendar/Dockerfile
+    hostname: localhost
+    ports: [ '5000:5000' ]
+    restart: unless-stopped
+    depends_on:
+      postgres-calendar:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - '..:/go/src'
+    working_dir: /go/src
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.4 }
+
+  scheduler:
+    container_name: scheduler_app
+    build:
+      context: ../
+      dockerfile: build/scheduler/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres-calendar:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.5 }
+
+  sender:
+    container_name: sender_app
+    build:
+      context: ../
+      dockerfile: build/sender/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres-calendar:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.6 }
+
+  postgres-testing:
+    container_name: calendar_testing_postgres
+    image: postgres:latest
+    hostname: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: calendar_testing
+    ports: [ '5433:5432' ]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      retries: 5
+      start_period: 15s
+      timeout: 10s
+    volumes:
+      - 'postgres-data:/var/lib/postgres'
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.9 }
+
+  integrations:
+    container_name: integration_tests
+    build:
+      context: ../
+      dockerfile: build/integration_tests/Dockerfile
+    hostname: localhost
+    ports: [ '5001:5001' ]
+    restart: unless-stopped
+    depends_on:
+      postgres-testing:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - '..:/go/src'
+    working_dir: /go/src
+    networks:
+      calendar-network: { ipv4_address: 100.90.10.10 }
+
+networks:
+  calendar-network:
+    driver: bridge
+    ipam:
+      config: [ { subnet: 100.90.10.0/24 } ]
+
+volumes:
+  postgres-data:
+  rmq-data:

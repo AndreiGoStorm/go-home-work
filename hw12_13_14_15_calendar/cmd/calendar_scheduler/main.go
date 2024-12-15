@@ -41,13 +41,13 @@ func main() {
 	}
 	defer store.Close(ctx)
 
-	rabbit := rabbit.New(conf, logg)
-	if err := rabbit.Connect(); err != nil {
+	rab := rabbit.New(conf, logg)
+	if err := rab.Connect(); err != nil {
 		logg.Error("failed to rabbit connect", err)
 	}
-	defer rabbit.Close()
+	defer rab.Close()
 
-	sch := scheduler.New(store, rabbit, logg)
+	sch := scheduler.New(store, rab, logg)
 	if err := sch.Run(ctx); err != nil {
 		logg.Error("failed to run scheduler", err)
 		cancel()

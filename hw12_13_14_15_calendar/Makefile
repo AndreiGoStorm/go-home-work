@@ -37,14 +37,6 @@ lint: install-lint-deps
 
 .PHONY: build run build-img run-img version test lint
 
-migrate-up:
-	cd migrations && \
-	goose postgres "dbname=calendar sslmode=disable host=10.90.0.5 port=5432 password=user user=user" up
-
-migrate-down:
-	cd migrations && \
-	goose postgres "dbname=calendar sslmode=disable host=10.90.0.5 port=5432 password=user user=user" down
-
 install:
 	go get \
 		github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
@@ -59,3 +51,19 @@ generate:
 		--go-grpc_out ./api/pb --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out ./api/pb --grpc-gateway_opt paths=source_relative \
 		./api/event/*.proto
+
+up-build:
+	cd deployments && \
+	docker-compose --project-name="calendar" up --build
+
+up:
+	cd deployments && \
+	docker-compose --project-name="calendar" up -d
+
+down:
+	cd deployments && \
+	docker-compose --project-name="calendar" stop
+
+integration-tests: up
+	go test -race ./integrations/...
+	make down

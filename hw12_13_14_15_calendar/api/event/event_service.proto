@@ -36,7 +36,7 @@ service EventService{
   };
   rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse) {
     option (google.api.http) = {
-      patch: "/v1/events/{ID}"
+      patch: "/v1/events"
       body: "*"
     };
   };

@@ -16,6 +16,7 @@ type Storage struct {
 	dns string
 	db  *sql.DB
 	ctx context.Context
+	m   *Migration
 }
 
 func New(db config.Database) *Storage {
@@ -251,6 +252,11 @@ func (s *Storage) Connect(ctx context.Context) error {
 
 	s.db = db
 	s.ctx = ctx
+
+	s.m = NewMigration()
+	if err := s.m.migrate(s.db); err != nil {
+		return err
+	}
 
 	return nil
 }

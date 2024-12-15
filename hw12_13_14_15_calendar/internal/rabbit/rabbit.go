@@ -174,6 +174,7 @@ func (r *Rabbit) Connect() (err error) {
 	r.conn, err = amqp.Dial(r.uri)
 	if err != nil {
 		r.logg.Error("Failed to connect rabbit: ", err)
+		return
 	}
 	r.logg.Info("Rabbit connect")
 	return
