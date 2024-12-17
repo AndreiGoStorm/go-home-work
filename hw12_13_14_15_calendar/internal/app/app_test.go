@@ -147,6 +147,7 @@ func initApp() (*App, context.Context) {
 	}
 	configFile := "/../../configs/config-testing.toml"
 	conf := config.New(path.Dir(file) + configFile)
+	conf.Storage.Driver = "in-memory"
 	logg := logger.New(conf.Logger.Level)
 	store := storage.New(conf)
 	ctx := context.Background()
