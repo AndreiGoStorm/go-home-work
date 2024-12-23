@@ -1,0 +1,30 @@
+namespace: calendar
+
+postgres:
+  replicaCount: 1
+  image: postgres:latest
+  dbname: calendar
+  username: user
+  password: user
+
+rabbitmq:
+  replicaCount: 1
+  image: rabbitmq:latest
+  user: user
+  password: user
+
+calendar:
+  replicaCount: 1
+  image: anrilee/calendar_app:latest
+  grpc:
+    port: 5005
+    nodePort: 30007
+
+scheduler:
+  replicaCount: 1
+  image: anrilee/calendar_scheduler:latest
+
+sender:
+  replicaCount: 1
+  image: anrilee/calendar_sender:latest
+

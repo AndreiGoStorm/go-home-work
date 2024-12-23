@@ -45,7 +45,7 @@ services:
       context: ../
       dockerfile: build/calendar/Dockerfile
     hostname: localhost
-    ports: [ '5000:5000' ]
+    ports: [ '5005:5005' ]
     restart: unless-stopped
     depends_on:
       postgres-calendar:
