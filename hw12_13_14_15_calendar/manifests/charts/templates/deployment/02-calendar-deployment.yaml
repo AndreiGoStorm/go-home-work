@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: calendar-deployment
+  labels:
+    app: calendar
+spec:
+  replicas: {{ .Values.calendar.replicaCount }}
+  selector:
+    matchLabels:
+      app: calendar
+  template:
+    metadata:
+      labels:
+        app: calendar
+    spec:
+      containers:
+        - name: calendar
+          image: {{ .Values.calendar.image }}
+          ports:
+            - containerPort: {{ .Values.calendar.grpc.port }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: calendar
+  name: calendar-service
+spec:
+  selector:
+    app: calendar
+  ports:
+    - name: calendar
+      port: {{ .Values.calendar.grpc.port }}
+      targetPort: {{ .Values.calendar.grpc.port }}
+      nodePort: {{ .Values.calendar.grpc.nodePort }}
+  type: NodePort
